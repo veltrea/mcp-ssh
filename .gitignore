@@ -1,0 +1,25 @@
+# Rust
+/target/
+Cargo.lock
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Private files / Local configs
+*-private*
+*.pen
+*.log
+.env
+.env.*
+!.env.example
+
+# Temporary files
+tmp/
+temp/
