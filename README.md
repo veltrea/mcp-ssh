@@ -14,19 +14,19 @@
 ### 2.1. SSH コマンドの実行 (exec)
 ```bash
 # エイリアス my-server でコマンドを実行
-cargo run -- exec my-server "ls -la"
+./mcp-ssh exec my-server "ls -la"
 ```
 
 ### 2.2. ホスト情報の表示 (info)
 ```bash
 # マシンのコンテキストと制約を表示
-cargo run -- info my-server
+./mcp-ssh info my-server
 ```
 
 ### 2.3. MCP モード (mcp)
 JSON-RPC を介した MCP サーバーとして起動します（引数なしでも同様）。
 ```bash
-cargo run -- mcp
+./mcp-ssh mcp
 ```
 
 ## 3. 提供ツール (MCP)
@@ -39,7 +39,7 @@ AIエージェントには以下のツールが提供されます：
 接続先マシンの詳細情（用途、制約、OS、所有権）を取得します。接続前にAIが適切な判断を行うために必須のステップです。
 
 ## 3. 実行フロー
-1. AIが `get_host_info` でマシンの制約を確認.
+1. AIが `get_host_info` でマシンの制約を確認。
 2. 問題がなければ `ssh_exec` をエイリアス指定で実行。
 3. `mcp-ssh` がDB上の制約を評価し、許可された場合のみ続行。
 4. 内蔵 SSH 実装（`ssh2`）で接続・実行。
@@ -47,3 +47,31 @@ AIエージェントには以下のツールが提供されます：
 
 ## 4. 設定
 `mcp-ssh-manager` と同じデータベースを参照するため、特別な追加設定は不要です。
+
+## 5. 制約ルール形式
+現在の `rule_text` は以下をサポートします。
+- `read_only`: 破壊系・書き込み系コマンドを拒否（従来互換）
+- `allow_command=<cmd>`: 指定コマンド名のみ許可（複数可）
+- `allow_prefix=<prefix>`: コマンド文字列の先頭一致のみ許可（複数可）
+- `deny_command=<cmd>`: 指定コマンド名を拒否
+- `deny_prefix=<prefix>`: 指定プレフィックスを拒否
+- `deny_substring=<text>`: 部分一致で拒否
+
+未知のルールは fail-close（拒否）として扱われます。
+
+## 6. 判定順序と優先順位
+1. ルールをパース（未知/不正は fail-close）。
+2. `read_only` を評価。
+3. `deny_*` を評価（一致で拒否）。
+4. `allow_*` がある場合は少なくとも1つ一致が必要。
+
+優先順位は `read_only` > `deny_*` > `allow_*` です。
+
+## 7. 監査ログの exit_code
+- `-2`: 制約違反
+- `-1`: 接続/認証/通信失敗
+- `0+`: リモートコマンドの終了コード
+
+
+## 8. ライセンス
+[MIT License](LICENSE)
